@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Fotos eCommerce
+
+Resources:
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-photos-${AWS::AccountId}
+
+  PhotosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: name
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: name
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: !Sub ${AWS::StackName}-Photos
+
+  PutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: put.handler
+      Runtime: python3.7
+      CodeUri: src/
+      FunctionName: !Sub ${AWS::StackName}-PutPhoto
+      Tracing: Active
+      MemorySize: 1024
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - AWSLambdaExecute
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PhotosTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PhotosTable
+          TABLE_ARN: !GetAtt PhotosTable.Arn
+      Events:
+        PhotosBucket:
+          Type: S3
+          Properties:
+            Bucket: !Ref PhotosBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.jpg'
+
+  DeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: delete.handler
+      Runtime: python3.7
+      CodeUri: src/
+      FunctionName: !Sub ${AWS::StackName}-DeletePhoto
+      Tracing: Active
+      MemorySize: 1024
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - AWSLambdaExecute
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PhotosTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PhotosTable
+          TABLE_ARN: !GetAtt PhotosTable.Arn
+      Events:
+        PhotosBucket:
+          Type: S3
+          Properties:
+            Bucket: !Ref PhotosBucket
+            Events: s3:ObjectRemoved:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.jpg'
