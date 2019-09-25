@@ -13,9 +13,11 @@ dynamo = boto3.resource('dynamodb')  # type: botostubs.DynamoDB.DynamodbResource
 
 def handler(event, context):
     events = event.get('Records', [])
-    result = {}
+    result = []
 
     for e in events:
+        logger.info(json.dumps(e))
+
         if 'ObjectRemoved' not in e['eventName']:
             continue
 
@@ -25,26 +27,14 @@ def handler(event, context):
             table_name = os.getenv('TABLE_NAME')
             table = dynamo.Table(table_name)
 
-            (name, ext) = key.split('/')[-1:][0].split('.')
-            key = {
-                'name': name
-            }
+            key = dict(key=key)
 
-            response = table.delete_item(
-                Key=key,
-                ReturnValues='ALL_OLD'
-            )
+            response = table.delete_item(Key=key, ReturnValues='ALL_OLD')
 
-            result = {
-                'Event': e,
-                'Response': response
-            }
+            result.append(response)
         except Exception as error:
             logger.error(error)
 
     logger.info(json.dumps(result))
 
-    return {
-        'status': 200,
-        'body': json.dumps(result)
-    }
+    return {}
