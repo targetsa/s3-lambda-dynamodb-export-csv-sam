@@ -22,13 +22,14 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
       TableName: !Sub ${AWS::StackName}-Photos
 
-  PutFunction:
+  Put:
     Type: AWS::Serverless::Function
     Properties:
       Handler: put.handler
       Runtime: python3.7
       CodeUri: src/
-      FunctionName: !Sub ${AWS::StackName}-PutPhoto
+      FunctionName: !Sub ${AWS::StackName}-put_photo
+      Description: "Crea un elemento en DynamoDB a partir de eventos S3 ObjectCreated:*."
       Tracing: Active
       MemorySize: 1024
       Policies:
@@ -52,13 +53,14 @@ Resources:
                   - Name: suffix
                     Value: '.jpg'
 
-  DeleteFunction:
+  Delete:
     Type: AWS::Serverless::Function
     Properties:
       Handler: delete.handler
       Runtime: python3.7
       CodeUri: src/
-      FunctionName: !Sub ${AWS::StackName}-DeletePhoto
+      FunctionName: !Sub ${AWS::StackName}-delete_photo
+      Description: "Elimina un elemento en DynamoDB a partir de eventos S3 ObjectRemoved:*."
       Tracing: Active
       MemorySize: 1024
       Policies:
