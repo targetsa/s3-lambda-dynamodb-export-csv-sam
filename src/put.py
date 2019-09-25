@@ -13,9 +13,11 @@ dynamo = boto3.resource('dynamodb')  # type: botostubs.DynamoDB.DynamodbResource
 
 def handler(event, context):
     events = event.get('Records', [])
-    result = {}
+    result = []
 
     for e in events:
+        logger.info(json.dumps(e))
+
         if 'ObjectCreated' not in e['eventName']:
             continue
 
@@ -27,33 +29,30 @@ def handler(event, context):
             table_name = os.getenv('TABLE_NAME')
             table = dynamo.Table(table_name)
 
-            (name, ext) = object_.key.split('/')[-1:][0].split('.')
-            filename = object_.key.split('/')[-1:][0]
-            url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
+            key_split = object_.key.split('/')
+            filename = key_split[0] if len(key_split) == 1 else key_split[-1:][0]
+            name = key_split[0] if len(key_split) > 1 else filename.split('.')[0]
             content_type = object_.content_type
+            url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
+
+            item_found = table.get_item(Key={'key': key}, ProjectionExpression='created_at').get('Item')
+
+            created_at = object_.last_modified.isoformat() if item_found is None else item_found.get('created_at')
             modified_at = object_.last_modified.isoformat()
-            found = table.get_item(Key={'name': name}, ProjectionExpression='created_at').get('Item')
-            created_at = object_.last_modified.isoformat() if found is None else found.get('created_at')
-
-            item = dict(name=name, ext=ext, filename=filename, content_type=content_type, url=url,
+            item = dict(key=key,
+                        name=name,
+                        filename=filename,
+                        content_type=content_type,
+                        url=url,
                         created_at=created_at,
-                        modified_at=modified_at)
+                        modified_at=modified_at, )
 
-            response = table.put_item(
-                Item=item,
-                ReturnValues='ALL_OLD'
-            )
+            response = table.put_item(Item=item, ReturnValues='ALL_OLD')
 
-            result = {
-                'Event': e,
-                'Response': response
-            }
+            result.append(response)
         except Exception as error:
             logger.error(error)
 
     logger.info(json.dumps(result))
 
-    return {
-        'status': 200,
-        'body': json.dumps(result)
-    }
+    return {}
