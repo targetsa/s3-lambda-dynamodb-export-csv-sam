@@ -83,3 +83,25 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: '.jpg'
+
+  ExportCSV:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: export.handler
+      Runtime: python3.7
+      CodeUri: src/
+      FunctionName: !Sub ${AWS::StackName}-export_csv
+      Description: "Vuelca contenido de una tabla a un archivo CSV."
+      Tracing: Active
+      MemorySize: 1024
+      Timeout: 60
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - AWSLambdaExecute
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PhotosTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PhotosTable
+          TABLE_ARN: !GetAtt PhotosTable.Arn
+          BUCKET_NAME: !Ref PhotosBucket
