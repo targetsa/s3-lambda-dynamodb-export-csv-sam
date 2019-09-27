@@ -3,12 +3,16 @@ Transform: AWS::Serverless-2016-10-31
 Description: SAM Fotos eCommerce
 
 Parameters:
-  PhotosBucketName:
+  S3BucketName:
     Type: String
-    Description: "Nombre del Bucket S3"
+    Description: "Nombre Bucket S3"
+
+  DynamoDBTableName:
+    Type: String
+    Description: "Nombre tabla DynamoDB"
 
 Resources:
-  PhotosTable:
+  DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
@@ -20,7 +24,7 @@ Resources:
           KeyType: HASH
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
-      TableName: !Sub ${AWS::StackName}-Photos
+      TableName: !Sub ${AWS::StackName}-${DynamoDBTableName}
 
   Put:
     Type: AWS::Serverless::Function
@@ -36,11 +40,11 @@ Resources:
         - AWSXrayWriteOnlyAccess
         - AWSLambdaExecute
         - DynamoDBCrudPolicy:
-            TableName: !Ref PhotosTable
+            TableName: !Ref DynamoDBTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref PhotosTable
-          TABLE_ARN: !GetAtt PhotosTable.Arn
+          TABLE_NAME: !Ref DynamoDBTable
+          TABLE_ARN: !GetAtt DynamoDBTable.Arn
 
   Delete:
     Type: AWS::Serverless::Function
@@ -56,11 +60,11 @@ Resources:
         - AWSXrayWriteOnlyAccess
         - AWSLambdaExecute
         - DynamoDBCrudPolicy:
-            TableName: !Ref PhotosTable
+            TableName: !Ref DynamoDBTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref PhotosTable
-          TABLE_ARN: !GetAtt PhotosTable.Arn
+          TABLE_NAME: !Ref DynamoDBTable
+          TABLE_ARN: !GetAtt DynamoDBTable.Arn
 
   ExportCSV:
     Type: AWS::Serverless::Function
@@ -77,11 +81,12 @@ Resources:
         - AWSXrayWriteOnlyAccess
         - AWSLambdaExecute
         - S3CrudPolicy:
-            BucketName: !Sub ${PhotosBucketName}
+            BucketName: !Sub ${S3BucketName}
         - DynamoDBCrudPolicy:
-            TableName: !Ref PhotosTable
+            TableName: !Ref DynamoDBTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref PhotosTable
-          TABLE_ARN: !GetAtt PhotosTable.Arn
-          BUCKET_NAME: !Sub ${PhotosBucketName}
+          TABLE_NAME: !Ref DynamoDBTable
+          TABLE_ARN: !GetAtt DynamoDBTable.Arn
+          BUCKET_NAME: !Sub ${S3BucketName}
+          OBJECT_KEY: !Sub ${AWS::StackName}-${DynamoDBTableName}.csv
