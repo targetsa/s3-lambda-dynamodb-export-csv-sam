@@ -23,25 +23,27 @@ def handler(event, context):
         bucket = s3.Bucket(bucket_name)
         response = table.scan()  # TODO: See paging results doc when exceeding 1 MB limit
         items = response.get('Items', [])
-        fieldnames = list(items[0].keys())
 
-        key = 'photos.csv'
-        filename = '/tmp/photos.csv'
+        if len(items) > 0:
+            fieldnames = list(items[0].keys())
 
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            key = 'photos.csv'
+            filename = '/tmp/photos.csv'
 
-            writer.writeheader()
+            with open(filename, 'w', newline='') as csv_file:
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
-            for item in items:
-                writer.writerow(item)
+                writer.writeheader()
 
-        bucket.upload_file(filename, key)
+                for item in items:
+                    writer.writerow(item)
 
-        result.append(response)
+            bucket.upload_file(filename, key, ExtraArgs={'ACL': 'public-read'})
+
+            result.append(response)
     except Exception as error:
         logger.error(error)
 
     logger.info(json.dumps(result))
 
-    return {}
+    return result
