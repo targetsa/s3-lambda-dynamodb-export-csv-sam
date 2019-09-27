@@ -27,8 +27,8 @@ def handler(event, context):
         if len(items) > 0:
             fieldnames = list(items[0].keys())
 
-            key = 'photos.csv'
-            filename = '/tmp/photos.csv'
+            key = os.getenv('OBJECT_KEY', f'{table_name}.csv')
+            filename = f'/tmp/{key}'
 
             with open(filename, 'w', newline='') as csv_file:
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
