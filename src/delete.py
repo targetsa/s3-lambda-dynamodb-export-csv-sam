@@ -37,4 +37,4 @@ def handler(event, context):
 
     logger.info(json.dumps(result))
 
-    return {}
+    return result
