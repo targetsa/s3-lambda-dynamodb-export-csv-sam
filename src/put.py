@@ -34,6 +34,7 @@ def handler(event, context):
             name = key_split[0] if len(key_split) > 1 else filename.split('.')[0]
             content_type = object_.content_type
             url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
+            base_url, _ = url.rsplit('/', 1)
 
             item_found = table.get_item(Key={'key': key}, ProjectionExpression='created_at').get('Item')
 
@@ -43,6 +44,7 @@ def handler(event, context):
                         name=name,
                         filename=filename,
                         content_type=content_type,
+                        base_url=base_url,
                         url=url,
                         created_at=created_at,
                         modified_at=modified_at, )
