@@ -34,6 +34,7 @@ Resources:
       CodeUri: src/
       FunctionName: !Sub ${AWS::StackName}-put_photo
       Description: "Crea un elemento en DynamoDB a partir de eventos S3 ObjectCreated:*."
+      Timeout: 30
       Tracing: Active
       MemorySize: 1024
       Policies:
@@ -54,6 +55,7 @@ Resources:
       CodeUri: src/
       FunctionName: !Sub ${AWS::StackName}-delete_photo
       Description: "Elimina un elemento en DynamoDB a partir de eventos S3 ObjectRemoved:*."
+      Timeout: 30
       Tracing: Active
       MemorySize: 1024
       Policies:
