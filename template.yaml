@@ -91,4 +91,4 @@ Resources:
           TABLE_NAME: !Ref DynamoDBTable
           TABLE_ARN: !GetAtt DynamoDBTable.Arn
           BUCKET_NAME: !Sub ${S3BucketName}
-          OBJECT_KEY: !Sub ${AWS::StackName}-${DynamoDBTableName}.csv
+          OBJECT_KEY: !Sub ${DynamoDBTableName}.csv
