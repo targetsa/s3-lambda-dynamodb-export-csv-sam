@@ -1,44 +1,49 @@
 import csv
 import json
+import logging
 import os
+from typing import TYPE_CHECKING
 
 import boto3
-import botostubs
-import logging
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3ServiceResource
+    from mypy_boto3_dynamodb import DynamoDBServiceResource
+else:
+    S3ServiceResource = object
+    DynamoDBServiceResource = object
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-dynamo = boto3.resource('dynamodb')  # type: botostubs.DynamoDB.DynamodbResource
-s3 = boto3.resource('s3')  # type: botostubs.S3.S3Resource
+s3: S3ServiceResource = boto3.resource('s3')
+dynamo: DynamoDBServiceResource = boto3.resource('dynamodb')
 
 
 def handler(event, context):
-    table_name = os.getenv('TABLE_NAME')
-    bucket_name = os.getenv('BUCKET_NAME')
     result = []
 
     try:
-        table = dynamo.Table(table_name)
-        bucket = s3.Bucket(bucket_name)
+        table = dynamo.Table(os.getenv('TABLE_NAME'))
+        bucket = s3.Bucket(os.getenv('BUCKET_NAME'))
         response = table.scan()  # TODO: See paging results doc when exceeding 1 MB limit
         items = response.get('Items', [])
 
         if len(items) > 0:
-            fieldnames = list(items[0].keys())
+            field_names = list(items[0].keys())
 
-            key = os.getenv('OBJECT_KEY', f'{table_name}.csv')
+            key = os.getenv('OBJECT_KEY', f'{table.name}.csv')
             filename = f'/tmp/{key}'
 
             with open(filename, 'w', newline='') as csv_file:
-                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                writer = csv.DictWriter(csv_file, fieldnames=field_names)
 
                 writer.writeheader()
 
                 for item in items:
                     writer.writerow(item)
 
-            bucket.upload_file(filename, key, ExtraArgs={'ACL': 'public-read'})
+            bucket.upload_file(filename, key, ExtraArgs={})
 
             result.append(response)
     except Exception as error:

@@ -1,16 +1,25 @@
 import json
-import boto3
-import botostubs
-import os
 import logging
+import os
+from typing import TYPE_CHECKING
+
+import boto3
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3ServiceResource
+    from mypy_boto3_dynamodb import DynamoDBServiceResource
+else:
+    S3ServiceResource = object
+    DynamoDBServiceResource = object
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-s3 = boto3.resource('s3')  # type: botostubs.S3.S3Resource
-dynamo = boto3.resource('dynamodb')  # type: botostubs.DynamoDB.DynamodbResource
+s3: S3ServiceResource = boto3.resource('s3')
+dynamo: DynamoDBServiceResource = boto3.resource('dynamodb')
 
 
+# noinspection SpellCheckingInspection
 def handler(event, context):
     events = event.get('Records', [])
     result = []
@@ -23,35 +32,34 @@ def handler(event, context):
 
         bucket_name = e['s3']['bucket']['name']
         key = e['s3']['object']['key']
-        object_ = s3.Object(bucket_name, key)
 
         try:
-            table_name = os.getenv('TABLE_NAME')
-            table = dynamo.Table(table_name)
+            bucket_object = s3.Object(bucket_name, key)
+            table = dynamo.Table(os.getenv('TABLE_NAME'))
+            table_item = table.get_item(Key={'key': key}, ProjectionExpression='created_at').get('Item')
 
-            key_split = object_.key.split('/')
-            filename = key_split[0] if len(key_split) == 1 else key_split[-1:][0]
-            name = key_split[0] if len(key_split) > 1 else filename.split('.')[0]
-            content_type = object_.content_type
+            object_path = bucket_object.key.split('/')
+
+            filename = object_path[0] if len(object_path) == 1 else object_path[-1:][0]
+            root_directory = object_path[0] if len(object_path) > 1 else ''
+            parent_directory = object_path[-2] if len(object_path) > 2 else ''
+            content_type = bucket_object.content_type
             url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
             base_url, _ = url.rsplit('/', 1)
+            created_at = bucket_object.last_modified.isoformat() if table_item is None else table_item.get('created_at')
+            modified_at = bucket_object.last_modified.isoformat()
 
-            item_found = table.get_item(Key={'key': key}, ProjectionExpression='created_at').get('Item')
-
-            created_at = object_.last_modified.isoformat() if item_found is None else item_found.get('created_at')
-            modified_at = object_.last_modified.isoformat()
             item = dict(key=key,
-                        name=name,
                         filename=filename,
+                        root_directory=root_directory,
+                        parent_directory=parent_directory,
                         content_type=content_type,
                         base_url=base_url,
                         url=url,
                         created_at=created_at,
-                        modified_at=modified_at, )
+                        modified_at=modified_at)
 
-            response = table.put_item(Item=item, ReturnValues='ALL_OLD')
-
-            result.append(response)
+            result.append(table.put_item(Item=item, ReturnValues='ALL_OLD'))
         except Exception as error:
             logger.error(error)
 
