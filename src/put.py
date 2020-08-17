@@ -42,7 +42,7 @@ def handler(event, context):
 
             filename = object_path[0] if len(object_path) == 1 else object_path[-1:][0]
             root_directory = object_path[0] if len(object_path) > 1 else ''
-            parent_directory = object_path[-2] if len(object_path) > 2 else ''
+            parent_directory = object_path[-2] if len(object_path) > 2 else root_directory
             content_type = bucket_object.content_type
             url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
             base_url, _ = url.rsplit('/', 1)
