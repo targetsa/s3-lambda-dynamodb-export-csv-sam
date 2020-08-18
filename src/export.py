@@ -1,5 +1,4 @@
 import csv
-import json
 import logging
 import os
 from typing import TYPE_CHECKING
@@ -26,29 +25,41 @@ def handler(event, context):
     try:
         table = dynamo.Table(os.getenv('TABLE_NAME'))
         bucket = s3.Bucket(os.getenv('BUCKET_NAME'))
-        response = table.scan()  # TODO: See paging results doc when exceeding 1 MB limit
+        key = os.getenv('OBJECT_KEY')
+        bucket_object = s3.Object(bucket.name, key)
+        bucket_object_url = f"https://{bucket.name}.s3.amazonaws.com/{key}"
+
+        # If the total number of scanned items exceeds the maximum dataset size limit of 1 MB, the scan stops and
+        # results are returned to the user as a LastEvaluatedKey value to continue the scan in a subsequent
+        # operation.
+
+        # See https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.Pagination
+        response = table.scan()
         items = response.get('Items', [])
 
-        if len(items) > 0:
-            field_names = list(items[0].keys())
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items = items + response.get('Items')
+        else:
+            if len(items) > 0:
+                field_names = list(items[0].keys())
 
-            key = os.getenv('OBJECT_KEY', f'{table.name}.csv')
-            filename = f'/tmp/{key}'
+                filename = f'/tmp/{key}'
 
-            with open(filename, 'w', newline='') as csv_file:
-                writer = csv.DictWriter(csv_file, fieldnames=field_names)
+                with open(filename, 'w', newline='') as csv_file:
+                    writer = csv.DictWriter(csv_file, fieldnames=field_names)
 
-                writer.writeheader()
+                    writer.writeheader()
 
-                for item in items:
-                    writer.writerow(item)
+                    for item in items:
+                        writer.writerow(item)
 
-            bucket.upload_file(filename, key, ExtraArgs={})
+                bucket_object.upload_file(filename, ExtraArgs={})
+                result.append(response)
 
-            result.append(response)
+        logger.info(
+            f"Records: {len(items)} (See {bucket_object_url})" if len(items) > 0 else 'Nothing.')
     except Exception as error:
         logger.error(error)
-
-    logger.info(json.dumps(result))
 
     return result
