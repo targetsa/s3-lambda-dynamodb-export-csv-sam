@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import boto3
 
 if TYPE_CHECKING:
-    from mypy_boto3_dynamodb import DynamoDBServiceResource
+    from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 else:
     S3ServiceResource = object
     DynamoDBServiceResource = object
