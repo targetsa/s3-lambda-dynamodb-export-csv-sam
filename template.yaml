@@ -30,7 +30,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: put.handler
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: src/
       FunctionName: !Sub ${AWS::StackName}-put_photo
       Description: "Crea un elemento en DynamoDB a partir de eventos S3 ObjectCreated:*."
@@ -51,7 +51,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: delete.handler
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: src/
       FunctionName: !Sub ${AWS::StackName}-delete_photo
       Description: "Elimina un elemento en DynamoDB a partir de eventos S3 ObjectRemoved:*."
@@ -72,7 +72,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: export.handler
-      Runtime: python3.7
+      Runtime: python3.8
       CodeUri: src/
       FunctionName: !Sub ${AWS::StackName}-export_csv
       Description: "Genera volcado de contenido a un archivo CSV."
