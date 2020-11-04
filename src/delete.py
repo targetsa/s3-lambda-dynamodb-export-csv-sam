@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from typing import TYPE_CHECKING
+from urllib.parse import unquote_plus
 
 import boto3
 
@@ -27,7 +28,8 @@ def handler(event, context):
         if 'ObjectRemoved' not in e['eventName']:
             continue
 
-        key = e['s3']['object']['key']
+        object_key = e['s3']['object']['key']
+        key = unquote_plus(object_key)
 
         try:
             table = dynamo.Table(os.getenv('TABLE_NAME'))

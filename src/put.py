@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from typing import TYPE_CHECKING
+from urllib.parse import unquote_plus
 
 import boto3
 
@@ -31,7 +32,8 @@ def handler(event, context):
             continue
 
         bucket_name = e['s3']['bucket']['name']
-        key = e['s3']['object']['key']
+        object_key = e['s3']['object']['key']
+        key = unquote_plus(object_key)
 
         try:
             bucket_object = s3.Object(bucket_name, key)
@@ -44,7 +46,7 @@ def handler(event, context):
             root_directory = object_path[0] if len(object_path) > 1 else ''
             parent_directory = object_path[-2] if len(object_path) > 2 else root_directory
             content_type = bucket_object.content_type
-            url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, key)
+            url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, object_key)
             base_url, _ = url.rsplit('/', 1)
             created_at = bucket_object.last_modified.isoformat() if table_item is None else table_item.get('created_at')
             modified_at = bucket_object.last_modified.isoformat()
