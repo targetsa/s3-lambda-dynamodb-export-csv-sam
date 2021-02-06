@@ -45,6 +45,12 @@ def handler(event, context):
             filename = object_path[0] if len(object_path) == 1 else object_path[-1:][0]
             root_directory = object_path[0] if len(object_path) > 1 else ''
             parent_directory = object_path[-2] if len(object_path) > 2 else root_directory
+
+            # Continuar la siguiente iteración si al menos una entrada en `object_path` empieza con un punto; también
+            # conocido como archivo o directorio oculto en sistemas Unix.
+            if any(df for df in [filename, root_directory, parent_directory] if df.startswith('.')):
+                continue
+
             content_type = bucket_object.content_type
             url = 'https://%s.s3.amazonaws.com/%s' % (bucket_name, object_key)
             base_url, _ = url.rsplit('/', 1)
